@@ -1,0 +1,131 @@
+@startuml
+'https://plantuml.com/class-diagram
+skinparam classAttributeIconSize 0
+title Point of Sale UI redesigned with the Mediator pattern
+
+package swing {
+  class JButton {
+    - text : String
+    + doClick()
+  }
+  class JTextField {
+    - text : String
+  }
+  interface ActionListener {
+    + {abstract} actionPerformed(av : ActionEvent)
+  }
+  class JTextArea
+  JButton *--> "*" ActionListener : actionListeners
+  JTextField *--> "*" ActionListener : actionListeners
+}
+
+package pos_creditcard {
+  class PointOfSale {
+    + makeNewSale() : int
+    + addLineItemToSale(idSale : int, productName : String, qty : int)
+    + printReceiptOfSale(idSale : int)
+    + payOneSaleCash(idSale : int, amountHanded : double)
+    + printPayment(idSale : int)
+    + isSalePaid(idSale : int) : boolean
+    + isAmountHandedEnough(idSale : int, amount : double) : boolean
+    + saleHasProducts(idSale : int) : boolean
+    + getProductNames() : ArrayList<String>
+  }
+}
+
+package ui_solution {
+
+  interface Mediator <<Mediator>> {
+    + {abstract} tableSelected(tableButton : JButton)
+    + {abstract} newSale()
+    + {abstract} productSelected(productName : String)
+    + {abstract} printReceipt()
+    + {abstract} pay()
+    + {abstract} amountEntered()
+  }
+
+  class PosMediator <<ConcreteMediator>> implements Mediator {
+    - currentTableButton : JButton
+    - saleOfTable : HashMap<String, Integer>
+    - numProductsOfTable : HashMap<String, Integer>
+    + tableSelected(tableButton : JButton)
+    + newSale()
+    + productSelected(productName : String)
+    + printReceipt()
+    + pay()
+    + amountEntered()
+    - checkTableSelected() : boolean
+    - checkTableHasSale() : boolean
+    - readAmount() : double
+    - updateStatus(message : String)
+  }
+
+  class TableListener <<Colleague>> {
+    - tableButton : JButton
+    + actionPerformed(av : ActionEvent)
+  }
+  class NewSaleListener <<Colleague>> {
+    + actionPerformed(av : ActionEvent)
+  }
+  class ProductListener <<Colleague>> {
+    - productName : String
+    + actionPerformed(av : ActionEvent)
+  }
+  class PrintReceiptListener <<Colleague>> {
+    + actionPerformed(av : ActionEvent)
+  }
+  class PayListener <<Colleague>> {
+    + actionPerformed(av : ActionEvent)
+  }
+  class AmountListener <<Colleague>> {
+    + actionPerformed(av : ActionEvent)
+  }
+
+  class StatusPanel {
+    - currentTable : String
+    - currentSale : String
+    - currentNumProducts : int
+    - currentState : String
+    + setTable(table : String)
+    + setSale(sale : String)
+    + setNumProducts(n : int)
+    + setState(state : String)
+    + refresh(message : String)
+  }
+
+  class Main {
+    + {static} main(args : String[])
+  }
+}
+
+swing.ActionListener <|.. TableListener
+swing.ActionListener <|.. NewSaleListener
+swing.ActionListener <|.. ProductListener
+swing.ActionListener <|.. PrintReceiptListener
+swing.ActionListener <|.. PayListener
+swing.ActionListener <|.. AmountListener
+swing.JTextArea <|-- StatusPanel
+
+TableListener --> "1" Mediator : mediator
+NewSaleListener --> "1" Mediator : mediator
+ProductListener --> "1" Mediator : mediator
+PrintReceiptListener --> "1" Mediator : mediator
+PayListener --> "1" Mediator : mediator
+AmountListener --> "1" Mediator : mediator
+
+PosMediator --> "1" PointOfSale : pointOfSale
+PosMediator --> "1" StatusPanel : statusPanel
+PosMediator --> "1" swing.JTextField : textAmount
+
+note bottom of ProductListener
+  mediator.productSelected(productName);
+end note
+
+note right of PosMediator::productSelected
+  if (!checkTableHasSale()) return;
+  int id = saleOfTable.get(currentTable());
+  pointOfSale.addLineItemToSale(id, productName, 1);
+  updateStatus("Added 1 " + productName);
+end note
+
+@enduml

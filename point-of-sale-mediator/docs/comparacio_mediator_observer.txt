@@ -1,0 +1,78 @@
+COMPARACIO: patro MEDIATOR (la nostra solucio) vs patro OBSERVER
+=================================================================
+
+1. El problema que resolem
+--------------------------
+A ui_students cada listener coneixia molts altres objectes: PointOfSale,
+StatusPanel, el TableListener actual, l'AmountListener... i el TableListener
+havia d'avisar NewSaleListener, PayListener, PrintReceiptListener i tots els
+ProductListener cada cop que es clicava una taula. Era una xarxa de
+dependencies molts-a-molts (acoblament alt, logica repartida per moltes
+classes, disseny fragil).
+
+Hem aplicat el patro MEDIATOR: una interficie Mediator i una classe
+PosMediator (ConcreteMediator). Ara cada listener (Colleague) nomes coneix
+el mediator i li diu "ha passat aixo" (newSale(), pay(), productSelected(...)).
+El mediator es l'unic que coneix PointOfSale, StatusPanel i el camp de
+l'import, i guarda l'estat (taula actual, venda de cada taula, num. productes).
+Les dependencies passen de N x N a N x 1.
+
+2. Que fa cada patro
+--------------------
+- Observer: defineix una dependencia u-a-molts entre objectes de manera que
+  quan un objecte (Subject) canvia d'estat, tots els seus dependents
+  (Observers) son notificats i s'actualitzen automaticament.
+- Mediator: defineix un objecte que encapsula COM interactuen un conjunt
+  d'objectes. Els objectes (Colleagues) no es referencien entre ells sino
+  que es comuniquen a traves del mediator.
+
+3. Diferencies
+--------------
+a) Direccio i proposit de la comunicacio
+   - Observer: comunicacio unidireccional i de difusio (broadcast). El Subject
+     no sap QUI l'escolta ni QUE faran; nomes diu "he canviat".
+   - Mediator: comunicacio bidireccional i centralitzada. Els Colleagues
+     envien peticions al mediator i el mediator decideix a qui crida i en
+     quin ordre (coordina).
+
+b) On es la logica
+   - Observer: la logica de reaccio esta repartida en cada Observer
+     (cadascun decideix que fer quan rep update()).
+   - Mediator: la logica d'interaccio esta concentrada en un sol lloc
+     (PosMediator). Per exemple, "no es pot pagar si la taula no te venda o
+     no hi ha productes o l'import no arriba" esta tot a PosMediator.pay().
+
+c) Coneixement entre objectes
+   - Observer: el Subject coneix una llista d'Observers (a traves de la
+     interficie), que es poden afegir/treure en temps d'execucio
+     (attach/detach). Els observers coneixen el subject.
+   - Mediator: els Colleagues nomes coneixen el Mediator; el ConcreteMediator
+     coneix explicitament els objectes que coordina.
+
+d) Dinamisme vs. control
+   - Observer es mes dinamic: es poden subscriure nous observers sense
+     canviar el subject (obert a extensio).
+   - Mediator dona mes control: les regles d'interaccio son explicites, pero
+     el mediator pot creixer molt i convertir-se en una "god class".
+     Afegir un comportament nou normalment vol dir modificar el mediator.
+
+e) Exemple en el nostre programa
+   - Amb Observer, el TableListener seria un Subject i NewSaleListener,
+     PayListener, PrintReceiptListener i els ProductListener serien Observers
+     que rebrien "la taula actual ha canviat". Aixo reduiria una mica
+     l'acoblament (TableListener ja no coneix les classes concretes), pero
+     cada listener seguiria coneixent PointOfSale i StatusPanel i la logica
+     seguiria repartida.
+   - Amb Mediator, cap listener coneix ningu mes que el mediator.
+
+4. Relacio entre els dos
+------------------------
+No son excloents: sovint un mediator s'implementa amb Observer (els
+colleagues notifiquen al mediator com si fos un observer seu). De fet, els
+ActionListener de Swing ja son Observer: el JButton (Subject) notifica els
+seus ActionListener (Observers) amb actionPerformed(). Nosaltres fem servir
+aquest Observer de Swing per enviar els events al mediator.
+
+Resum: Observer = "aviso a tots els interessats que he canviat" (difusio,
+desacoblament del emissor). Mediator = "tothom parla amb un coordinador que
+sap com han d'interactuar" (centralitzacio de la logica d'interaccio).
